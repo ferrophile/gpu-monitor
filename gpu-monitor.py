@@ -24,7 +24,7 @@ def alert(args):
 
     subprocess.run(['notify-send', title, msg])
     if args.alert_sound is not None:
-        subprocess.run(['mpg123', '-q', args.alert_sound])
+        subprocess.run(['ffplay', '-nodisp', '-loglevel', '8', '-autoexit', args.alert_sound])
 
 
 def check_server(client, args):
@@ -63,13 +63,14 @@ def check_server(client, args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='GPU monitor for remote servers')
+    parser = argparse.ArgumentParser(description='GPU monitor for remote servers',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     ssh_grp = parser.add_argument_group('SSH options')
-    ssh_grp.add_argument('--user', '-u', required=True, help='User name')
+    ssh_grp.add_argument('--user', '-u', help='User name')
     ssh_grp.add_argument('--host', '-d', help='Host name')
     ssh_grp.add_argument('--port', '-p', default=22, type=int, help='Port number')
-    ssh_grp.add_argument('--pub_key', '-k', help='Path to public key')
+    ssh_grp.add_argument('--key', '-k', help='Path to public key')
 
     mon_grp = parser.add_argument_group('Monitor options')
     mon_grp.add_argument('--step', default=60, type=int, help='Period in seconds')
@@ -77,12 +78,18 @@ def main():
     mon_grp.add_argument('--min_ram', type=int, help='Consider GPUs with at least this much free RAM (in MiB) as '
                                                      'available. If not specified, only look for fully idle GPUs.')
     mon_grp.add_argument('--alert_sound', help='Path to alert sound file')
+    mon_grp.add_argument('--debug', action='store_true', help='Test if notification is working')
 
     args = parser.parse_args()
 
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy())
+
+    if args.debug:
+        args.addr = 'user@foo.bar.hk'
+        alert(args)
+        return
 
     user = args.user
     if args.host is not None:
@@ -97,8 +104,8 @@ def main():
     logging.basicConfig(format='[%(asctime)s] %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
 
     try:
-        if args.pub_key is not None:
-            client.connect(hostname=host, username=user, port=port, key_filename=args.pub_key)
+        if args.key is not None:
+            client.connect(hostname=host, username=user, port=port, key_filename=args.key)
         else:
             password = getpass.getpass('Password for "{}": '.format(addr))
             client.connect(hostname=host, username=user, port=port, password=password)
