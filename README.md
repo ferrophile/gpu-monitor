@@ -6,8 +6,8 @@ This tool continuously checks if GPUs are available on the specified server, usi
 
 ## Requirements
 
-* paramiko
-* polling
+* [paramiko](https://github.com/paramiko/paramiko)
+* [polling](https://github.com/justiniso/polling)
 * ffplay (Optional - required for audio notification)
 
 ```
